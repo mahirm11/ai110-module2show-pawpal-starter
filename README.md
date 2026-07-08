@@ -54,6 +54,15 @@ Paste a sample of your app's CLI or Streamlit output here so a reader can see wh
 #   ...
 ```
 
+My output after running `python main.py`:
+
+```
+Today's Schedule
+Daily schedule for Mahir — 55/90 min committed, 2 scheduled, 1 deferred:
+  Feed cat scheduled at 7:00am — highest priority (5).
+  Morning walk scheduled at 9:00am — priority 4.
+  Grooming deferred — needs 40 min but only 35 min left in today's 90-min budget.
+```
 ## 🧪 Testing PawPal+
 
 ```bash

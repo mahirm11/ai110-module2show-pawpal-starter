@@ -12,12 +12,27 @@
 **a. Initial design**
 
 - Briefly describe your initial UML design.
+
+My initial UML design includes an **owner** which owns one or more **pets**, and these pets need the owner to perform **tasks** for the pets to be taken care of properly. These tasks are scheduled in the **scheduler** and is used by the owner. 
+
 - What classes did you include, and what responsibilities did you assign to each?
+
+The owner has a name, available time, and dictionary of preferences; they can add a pet under their name, add a task for a pet, and set a constraint. The pet has a name, species, and age (but no action). The task has a name, type, duration, priority level, preferred time window, and can either be recurring or not recurring; it has a method for checking whether the task conflicts with other tasks. The scheduler has a list of tasks, and dictionary of constraints; some actions it can perform are generating the schedule from the list of tasks, explaining the reasoning, sort the list of tasks by priority, and detect conflicts from the list.
 
 **b. Design changes**
 
 - Did your design change during implementation?
+
 - If yes, describe at least one change and why you made it.
+
+The original skeleton had the right classes, but a few UML relationships 
+weren't actually wired up in code. For example, `Pet` had no way to hold 
+its own tasks, so I added `tasks: list[Task] = field(default_factory=list)` 
+to `Pet` to reflect the `Pet → Task` relationship from the diagram. I also 
+changed `Scheduler` to take an `owner` reference instead of a separate 
+`tasks` list, so it derives its task list by flattening `owner.pets[*].tasks` 
+rather than keeping its own copy — this avoids the two lists getting out 
+of sync before any scheduling logic even exists.
 
 ---
 
