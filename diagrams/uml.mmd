@@ -7,7 +7,11 @@ classDiagram
         +int available_time_today
         +dict preferences
         +add_pet(pet) None
+        +remove_pet(pet) None
         +add_task(task) None
+        +remove_task(task) None
+        +all_tasks() list~Task~
+        +tasks_for_pet(name) list~Task~
         +set_constraint(key, value) None
     }
 
@@ -15,6 +19,10 @@ classDiagram
         +str name
         +str species
         +int age
+        +add_task(task) None
+        +remove_task(task) None
+        +get_tasks() list~Task~
+        +pending_tasks() list~Task~
     }
 
     class Task {
@@ -24,16 +32,26 @@ classDiagram
         +int priority
         +tuple preferred_time_window
         +bool recurring
+        +bool completed
+        +tuple scheduled_time
         +conflicts_with(other) bool
+        +mark_done() None
     }
 
     class Scheduler {
         +list~Task~ tasks
         +dict constraints
-        +generate_schedule() list~Task~
+        +generate_schedule() Schedule
         +explain_reasoning() str
         +sort_by_priority() list~Task~
-        +detect_conflicts() list
+        +sort_by_time() list~Task~
+        +detect_conflicts() list~tuple~
+    }
+
+    class Schedule {
+        +list~Task~ scheduled
+        +list~Task~ deferred
+        +list~tuple~ conflicts
     }
 
     Owner "1" --> "*" Pet : owns
@@ -41,3 +59,5 @@ classDiagram
     Owner "1" --> "1" Scheduler : uses
     Scheduler "1" o-- "*" Task : schedules
     Task "*" --> "1" Pet : for
+    Scheduler "1" --> "0..1" Schedule : last_schedule
+    Schedule "1" o-- "*" Task : contains

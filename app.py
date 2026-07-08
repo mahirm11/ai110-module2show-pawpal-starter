@@ -134,23 +134,51 @@ if owner.pets:
 else:
     st.info("Add a pet before creating tasks.")
 
-tasks = [task for pet in owner.pets for task in pet.pending_tasks()]
-if tasks:
+pending = [task for pet in owner.pets for task in pet.pending_tasks()]
+if pending:
     st.write("Current tasks:")
-    for i, task in enumerate(tasks):
-        info_col, del_col = st.columns([4, 1])
-        window = (
-            f"{_fmt_time(task.preferred_time_window[0])}"
-            f"–{_fmt_time(task.preferred_time_window[1])}"
+
+    view_col, filter_col = st.columns(2)
+    with view_col:
+        view_mode = st.radio(
+            "View",
+            options=["By priority", "By time"],
+            horizontal=True,
+            help="By priority = most urgent first. By time = earliest preferred start first.",
         )
-        info_col.write(
-            f"{task.name} ({task.pet.name}) · {task.duration} min · "
-            f"priority {task.priority} · {window}"
-        )
-        if del_col.button("Delete", key=f"del_task_{i}"):
-            owner.remove_task(task)
-            owner.scheduler.last_schedule = None  # invalidate stale snapshot
-            st.rerun()
+    with filter_col:
+        # dict.fromkeys dedupes repeated pet names while keeping display order.
+        pet_names = list(dict.fromkeys(pet.name for pet in owner.pets))
+        pet_filter = st.selectbox("Filter by pet", options=["All pets"] + pet_names)
+
+    # Order via the scheduler's own sort methods so the UI showcases them.
+    if view_mode == "By time":
+        ordered = owner.scheduler.sort_by_time()
+    else:
+        ordered = owner.scheduler.sort_by_priority()
+
+    # Filter by pet using owner.tasks_for_pet(); keep the scheduler's ordering.
+    if pet_filter != "All pets":
+        pet_tasks = set(owner.tasks_for_pet(pet_filter))
+        ordered = [task for task in ordered if task in pet_tasks]
+
+    if ordered:
+        for i, task in enumerate(ordered):
+            info_col, del_col = st.columns([4, 1])
+            window = (
+                f"{_fmt_time(task.preferred_time_window[0])}"
+                f"–{_fmt_time(task.preferred_time_window[1])}"
+            )
+            info_col.write(
+                f"{task.name} ({task.pet.name}) · {task.duration} min · "
+                f"priority {task.priority} · {window}"
+            )
+            if del_col.button("Delete", key=f"del_task_{i}"):
+                owner.remove_task(task)
+                owner.scheduler.last_schedule = None  # invalidate stale snapshot
+                st.rerun()
+    else:
+        st.info(f"No tasks for {pet_filter}.")
 else:
     st.info("No tasks yet. Add one above.")
 
@@ -160,5 +188,20 @@ st.subheader("Build Schedule")
 st.caption("Runs your scheduler and explains the resulting plan.")
 
 if st.button("Generate schedule"):
-    owner.scheduler.generate_schedule()
+    schedule = owner.scheduler.generate_schedule()
+
+    if schedule.conflicts:
+        lines = [f"⚠️ **{len(schedule.conflicts)} scheduling conflict(s) detected:**", ""]
+        for first, second in schedule.conflicts:
+            first_slot = f"{_fmt_time(first.scheduled_time[0])}–{_fmt_time(first.scheduled_time[1])}"
+            second_slot = f"{_fmt_time(second.scheduled_time[0])}–{_fmt_time(second.scheduled_time[1])}"
+            lines.append(
+                f"- **{first.name}** ({first_slot}) overlaps "
+                f"**{second.name}** ({second_slot})"
+            )
+        st.warning("\n".join(lines))
+    else:
+        st.success("✅ Clean schedule — no conflicting time slots.")
+
+    # Full reasoning underneath either way.
     st.text(owner.scheduler.explain_reasoning())
