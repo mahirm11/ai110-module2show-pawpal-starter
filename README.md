@@ -63,20 +63,41 @@ Daily schedule for Mahir — 55/90 min committed, 2 scheduled, 1 deferred:
   Morning walk scheduled at 9:00am — priority 4.
   Grooming deferred — needs 40 min but only 35 min left in today's 90-min budget.
 ```
-## 🧪 Testing PawPal+
+
+## Testing PawPal+
+
+Run the test suite with:
 
 ```bash
-# Run the full test suite:
-pytest
-
-# Run with coverage:
-pytest --cov
+python -m pytest
 ```
 
-Sample test output:
+The suite covers task completion and addition, priority/time sorting, 
+pet-based filtering, recurring task recreation, conflict detection 
+(including exact-overlap and touching-boundary edge cases), and 
+degenerate inputs (empty schedules, zero-duration tasks). Two tests 
+intentionally pin current limitations rather than ideal behavior — 
+same-day recurring task reappearance and non-idempotent `mark_done()` 
+— both documented as known tradeoffs.
 
+**Confidence level:** 4/5 stars — solid coverage across sorting, 
+recurring tasks, and conflict detection, including boundary cases 
+like touching (non-overlapping) time slots. The remaining gap is two 
+known, documented limitations (recurring tasks can reappear same-day, 
+`mark_done()` isn't idempotent) rather than untested code.
+
+Sample output:
 ```
-# Paste your pytest output here
+========================================================================== test session starts ==========================================================================
+platform win32 -- Python 3.14.0, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\mahir\OneDrive\Documents\CS\CodePath\AI_110\Projects\ai110-module2show-pawpal-starter
+plugins: anyio-4.14.1
+collected 12 items                                                                                                                                                       
+
+tests\test_pawpal.py ............                                                                                                                                  [100%]
+
+========================================================================== 12 passed in 0.06s ===========================================================================
+
 ```
 
 ## 📐 Smarter Scheduling

@@ -8,6 +8,7 @@ def _make_task(
     *,
     name: str = "Walk",
     priority: int = 3,
+    duration: int = 30,
     preferred_time_window: tuple[int, int] = (540, 600),
     recurring: bool = True,
 ) -> Task:
@@ -15,7 +16,7 @@ def _make_task(
     return Task(
         name=name,
         type="walk",
-        duration=30,
+        duration=duration,
         priority=priority,
         preferred_time_window=preferred_time_window,
         recurring=recurring,
@@ -116,3 +117,123 @@ def test_mark_done_one_off_does_not_recreate():
     assert task.completed is True
     assert len(pet.get_tasks()) == 1
     assert pet.pending_tasks() == []
+
+
+# --- edge cases: empty schedule, conflicts, recurring, zero-duration --------
+
+
+def test_empty_schedule_does_not_crash():
+    """No tasks (including a pet with none) → empty schedule, no crash."""
+    owner = Owner("Sam", available_time_today=240, preferences={})
+    owner.add_pet(Pet("Rex", "dog", 3))  # a pet with no tasks at all
+
+    schedule = owner.scheduler.generate_schedule()
+
+    assert schedule.scheduled == []
+    assert schedule.deferred == []
+    assert schedule.conflicts == []
+    assert owner.scheduler.sort_by_priority() == []
+    # explain_reasoning() summarizes zero counts rather than raising.
+    assert "0 scheduled" in owner.scheduler.explain_reasoning()
+
+
+def test_exact_same_slot_conflicts():
+    """Two tasks placed at the identical slot are flagged as one conflict."""
+    owner = Owner("Sam", available_time_today=240, preferences={})
+    pet = Pet("Rex", "dog", 3)
+    owner.add_pet(pet)
+    a = _make_task(pet, name="A", preferred_time_window=(540, 600))
+    b = _make_task(pet, name="B", preferred_time_window=(540, 600))
+    pet.add_task(a)
+    pet.add_task(b)
+
+    schedule = owner.scheduler.generate_schedule()
+
+    # Both start at their (identical) preferred window start.
+    assert a.scheduled_time == (540, 570)
+    assert b.scheduled_time == (540, 570)
+    assert len(schedule.conflicts) == 1
+    assert set(schedule.conflicts[0]) == {a, b}
+
+
+def test_end_to_start_does_not_conflict():
+    """Half-open [start, end) slots that merely touch (600|600) do not conflict."""
+    owner = Owner("Sam", available_time_today=240, preferences={})
+    pet = Pet("Rex", "dog", 3)
+    owner.add_pet(pet)
+    first = _make_task(pet, name="First", duration=60, preferred_time_window=(540, 600))
+    second = _make_task(pet, name="Second", duration=60, preferred_time_window=(600, 660))
+    pet.add_task(first)
+    pet.add_task(second)
+
+    schedule = owner.scheduler.generate_schedule()
+
+    assert first.scheduled_time == (540, 600)
+    assert second.scheduled_time == (600, 660)
+    assert schedule.conflicts == []
+
+
+def test_recurring_clone_reschedulable_same_day():
+    """Documents the mark_done TODO: the clone reappears in today's plan.
+
+    The clone has no due date, so regenerating after completion re-schedules
+    it the same day. This asserts current behavior — update it if/when
+    due_date/planning_date lands.
+    """
+    owner = Owner("Sam", available_time_today=240, preferences={})
+    pet = Pet("Rex", "dog", 3)
+    owner.add_pet(pet)
+    task = _make_task(pet, name="Walk", recurring=True, preferred_time_window=(540, 600))
+    pet.add_task(task)
+
+    first = owner.scheduler.generate_schedule()
+    assert first.scheduled == [task]
+
+    task.mark_done()
+    second = owner.scheduler.generate_schedule()
+
+    # The completed original is filtered out; its pending clone is scheduled.
+    assert len(second.scheduled) == 1
+    clone = second.scheduled[0]
+    assert clone is not task
+    assert clone.completed is False
+    assert clone.name == "Walk"
+
+
+def test_double_mark_done_creates_duplicate_clones():
+    """Documents current behavior: re-completing a recurring task clones again.
+
+    mark_done() is not idempotent — each call on a recurring task spawns a
+    clone, so two calls leave two pending clones. Captured to observe, not
+    (yet) fix.
+    """
+    pet = Pet("Rex", "dog", 3)
+    task = _make_task(pet, recurring=True)
+    pet.add_task(task)
+
+    task.mark_done()
+    task.mark_done()  # completing the already-completed original again
+
+    assert task.completed is True
+    assert len(pet.get_tasks()) == 3  # original + 2 clones
+    assert len(pet.pending_tasks()) == 2
+
+
+def test_zero_duration_task_always_placed():
+    """A 0-min task fits any budget (0 <= remaining) and conflicts with nothing."""
+    owner = Owner("Sam", available_time_today=0, preferences={})
+    pet = Pet("Rex", "dog", 3)
+    owner.add_pet(pet)
+    zero = _make_task(pet, name="Zero", duration=0, preferred_time_window=(540, 600))
+    normal = _make_task(pet, name="Normal", duration=30, preferred_time_window=(540, 600))
+    pet.add_task(zero)
+    pet.add_task(normal)
+
+    schedule = owner.scheduler.generate_schedule()
+
+    # Even with a 0-min budget the 0-min task is placed; the 30-min one defers.
+    assert zero in schedule.scheduled
+    assert zero.scheduled_time == (540, 540)
+    assert normal in schedule.deferred
+    # A zero-length [t, t) slot overlaps nothing, so no conflict is flagged.
+    assert schedule.conflicts == []
