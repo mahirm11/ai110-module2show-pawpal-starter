@@ -83,12 +83,14 @@ Sample test output:
 
 > Fill in once you've implemented scheduling logic.
 
-| Feature | Method(s) | Notes |
-|---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| Feature | Method |
+|---|---|
+| Sorting by priority | `Scheduler.sort_by_priority()` |
+| Sorting by time | `Scheduler.sort_by_time()` |
+| Filtering by pet | `Owner.tasks_for_pet(name)` |
+| Filtering by completion status | `Pet.pending_tasks()` |
+| Conflict detection | `Scheduler.detect_conflicts()` |
+| Recurring tasks | `Task.mark_done()` (auto-recreates recurring tasks when completed) |
 
 ## 📸 Demo Walkthrough
 
