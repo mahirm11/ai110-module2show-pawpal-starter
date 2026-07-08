@@ -101,6 +101,17 @@ class Task:
         """
         self.completed = True
         if self.recurring and self.pet is not None:
+            # TODO(recurring): due_date + planning_date. preferred_time_window is
+            # time-of-day only, so the clone is due "some day" with no notion of
+            # tomorrow. Because Scheduler.tasks filters on pending (not date), the
+            # clone is immediately re-schedulable *today* — so once a "mark
+            # complete" UI button exists and the schedule is regenerated, a
+            # finished daily task would reappear in the same day's plan. Harmless
+            # now (no such button wired up yet). Minimal fix when it is: add an
+            # optional Task.due_date (None = any day), advance it by
+            # timedelta(days=1) here, and filter Scheduler.tasks on a
+            # Scheduler.planning_date (None = ignore dates, preserving today's
+            # behavior).
             self.pet.add_task(replace(self, completed=False, scheduled_time=None))
 
 
@@ -267,7 +278,8 @@ class Scheduler:
         lines = [
             f"Daily schedule for {self.owner.name} "
             f"— {used}/{budget} min committed, "
-            f"{len(schedule.scheduled)} scheduled, {len(schedule.deferred)} deferred:"
+            f"{len(schedule.scheduled)} scheduled, {len(schedule.deferred)} deferred, "
+            f"{len(schedule.conflicts)} conflict(s):"
         ]
         lines.extend(f"  {note}" for note in self._reasoning)
 
