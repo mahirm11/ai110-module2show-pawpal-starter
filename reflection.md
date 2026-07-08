@@ -52,16 +52,15 @@ My scheduler's conflict detection is reporting, not avoidance — it never
 attempts to prevent overlapping placements, only flags them after the fact 
 via `Scheduler.detect_conflicts()`. Task placement always uses the start of 
 `preferred_time_window`, so any two tasks with overlapping preferred windows 
-will always collide and always be flagged.
+will always collide and always be flagged, with no attempt to auto-resolve.
 
-I chose this deliberately: preferred time windows can encode real constraints 
-(medication timing, a fixed walk-before-work window) that the scheduler has 
-no way to know are flexible. Auto-resolving a conflict by silently shifting 
-one task risks violating a constraint the owner never stated was negotiable. 
-Flagging conflicts and letting the human decide respects that ambiguity, and 
-treats a scheduling collision as a normal state of a multi-pet household 
-rather than an error to raise/crash on.
-
+Preferred time windows can encode real constraints (medication timing, a 
+fixed walk-before-work window) that the scheduler has no way to know are 
+flexible. Auto-resolving a conflict by silently shifting one task risks 
+violating a constraint the owner never stated was negotiable. Flagging the 
+conflict and letting the human decide respects that ambiguity, and treats a 
+scheduling collision as a normal state of a multi-pet household — not an 
+error the program should try to silently fix or crash on.
 ---
 
 ## 3. AI Collaboration
