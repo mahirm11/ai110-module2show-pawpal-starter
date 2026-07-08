@@ -2,6 +2,13 @@
 
 ## 1. System Design
 
+**Core Actions**
+1. **Add a task** The user creates a pet care task (walk, feeding, meds, enrichment), settings its duration, priority, and any preferred time windows
+
+2. **Set daily constraints** The user inputs how much time they have available today and any scheduling preferences (e.g., meds before a certain time), which the scheduler must respect
+
+3. **Generate today's plan** The system produces an ordered schedule from the task list and constraints, and explains its reasoning (why tasks were ordered/included/deferred as they were).
+
 **a. Initial design**
 
 - Briefly describe your initial UML design.

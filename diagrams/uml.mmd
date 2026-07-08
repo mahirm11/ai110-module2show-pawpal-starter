@@ -1,15 +1,43 @@
 classDiagram
-    %% Replace the placeholders below with your actual classes, attributes, methods, and relationships.
+    %% PawPal+ core domain model
     %% Keep this file updated so it matches your final implementation.
 
-    class ClassName {
-        +type attribute
-        +method() returnType
+    class Owner {
+        +str name
+        +int available_time_today
+        +dict preferences
+        +add_pet(pet) None
+        +add_task(task) None
+        +set_constraint(key, value) None
     }
 
-    class AnotherClass {
-        +type attribute
-        +method() returnType
+    class Pet {
+        +str name
+        +str species
+        +int age
     }
 
-    ClassName --> AnotherClass : relationship
+    class Task {
+        +str name
+        +str type
+        +int duration
+        +int priority
+        +tuple preferred_time_window
+        +bool recurring
+        +conflicts_with(other) bool
+    }
+
+    class Scheduler {
+        +list~Task~ tasks
+        +dict constraints
+        +generate_schedule() list~Task~
+        +explain_reasoning() str
+        +sort_by_priority() list~Task~
+        +detect_conflicts() list
+    }
+
+    Owner "1" --> "*" Pet : owns
+    Pet "1" --> "*" Task : needs
+    Owner "1" --> "1" Scheduler : uses
+    Scheduler "1" o-- "*" Task : schedules
+    Task "*" --> "1" Pet : for
